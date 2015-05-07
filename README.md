@@ -1,8 +1,8 @@
 # Detailed, structured data on EU commissioners' agendas
 
-The herein presented scraper is an enhancement to https://github.com/cguess/Fontaine - The script by @cguess fetches agenda data from https://ec.europa.eu/commission/2014-2019/agenda_en
+The herein presented scraper is an enhancement to https://github.com/cguess/Fontaine - That script by [@cguess](https://twitter.com/cguess) fetches agenda data from https://ec.europa.eu/commission/2014-2019/agenda_en
 
-Even **better**, i.e. **more structured** data (entities met, discussed subjects) are available on each commissioner's profile page, for example [here](http://ec.europa.eu/commission/2014-2019/timmermans_en) under the point "Agenda". Available are:
+Even better, i.e. **more structured data**(entities met, discussed subjects) are available on each commissioner's profile page, for example [here](http://ec.europa.eu/commission/2014-2019/timmermans_en) under the point "Agenda". Available are:
 
 1. The meetings held by the commissioner himself/herself
 2. The meetings held by his or her cabinet
@@ -20,6 +20,7 @@ Fire up RStudio and knit `main.Rmd` (don't forget to change the working director
 ## Issues
 
 * There are still some problems with line breaks, these are not correctly replaced in the scraper. 
+* Somehow the data available under the above mentioned links are only reaching back until 2014- the data scrapable through https://github.com/cguess/Fontaine seem to be a bit more thorough - a deduplication/redundancy check would be appropriate. 
 * The code is messy as hell - sorry for that. 
 
 ## Further actions:
