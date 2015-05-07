@@ -136,7 +136,6 @@ all_data_cabinet <- data.frame()
 # loop over every commissioner 
 for(commissioner in commissioners){
   print(commissioner[["name"]])
-  commissioner <- commissioners[[1]]
   agenda_meetings_2_page <- html(commissioner[["meetings_2"]])
   # extract number of pages
   pagelinksContainer <- agenda_meetings_2_page %>%
