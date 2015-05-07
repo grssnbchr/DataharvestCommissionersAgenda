@@ -1,0 +1,185 @@
+---
+title: "Scraper for EU commissioners' agenda (detailed data)"
+author: "tgr"
+date: "05/07/2015"
+output: html_document
+---
+
+
+
+```{r}
+if(!require(devtools)){
+  install.packages("devtools", repos="http://cran.us.r-project.org")
+  require(devtools)
+}
+if(!require(httr)){
+  install.packages("httr", repos="http://cran.us.r-project.org")
+  require(httr)
+}
+if(!require(rvest)){
+  install.packages("rvest", repos="http://cran.us.r-project.org")
+  require(rvest)
+}
+if(!require(dplyr)) {
+  install.packages("dplyr", repos="http://cran.us.r-project.org")
+  require(dplyr)
+}
+if(!require(magrittr)) {
+  install.packages("magrittr", repos="http://cran.us.r-project.org")
+  require(magrittr)
+}
+```
+
+Scrape that stuff! 
+
+First we need to get the links to every commissioner's profile.
+```{r}
+# extract the link to the president
+links_raw <- html("http://ec.europa.eu/commission/2014-2019_en")
+link_president <- links_raw %>%
+  html_node(".team-members-president") %>%
+  html_node("a") %>%
+  html_attr("href")
+# extract the links of all commissioners
+links <- links_raw %>%
+  html_node("#quicktabs-tabpage-team_members-2") %>%
+  html_nodes(".field-content.member-details") %>%
+  html_node("a") %>%
+  html_attr("href")
+
+links <- c(links, link_president)
+```
+
+Then we need to collect the links to both agendas of each commissioner (his/her own agenda and the one of its cabinet).
+```{r}
+commissioners <- list()
+for(link in links){
+  print(link)
+  member_page <- html(link)
+  member_name <- paste((member_page %>%
+    html_node("h1.page-header") %>%
+    html_node("span.first-name") %>% 
+      html_text()), (member_page %>%
+    html_node("h1.page-header") %>%
+    html_node("span.last-name")  %>% 
+      html_text()), sep = " ")
+  agenda_links = member_page %>%
+    html_node("#block-views-activities-block") %>%
+    html_nodes("ul") %>%
+    html_nodes("a") %>%
+    html_attr("href")
+  newCommissioner <- list(name = member_name, meetings_1 = agenda_links[1], meetings_2 = agenda_links[2])
+  commissioners[[length(commissioners) + 1]] <- newCommissioner
+}
+```
+
+Then we loop over each commissioner and scrape the tables associated with both aforementioned agendas.
+
+His/her own agenda:
+```{r}
+# commissioner data
+all_data <- data.frame()
+# loop over every commissioner 
+for(commissioner in commissioners){
+  print(commissioner[["name"]])
+  agenda_meetings_1_page <- html(commissioner[["meetings_1"]])
+  # extract number of pages
+  pagelinksContainer <- agenda_meetings_1_page %>%
+    html_node("span.pagelinks")
+  
+  dataForCommissioner <- data.frame()
+  if(!is.null(pagelinksContainer)){
+    # extract number of pages
+    pagelinks <- agenda_meetings_1_page %>%
+      html_node("span.pagelinks") %>%
+      html_nodes("a") %>%
+      html_attr("href")
+    pagelink <- tail(pagelinks, n = 1)
+    pPosition <- regexpr("-p=",pagelink)[1]
+    # max number of pages
+    lastPage <- substr(pagelink,  pPosition + 3, nchar(pagelink))
+    # loop over all pages
+    for(i in 1:lastPage){
+      data <- html(paste("http://ec.europa.eu", substr(pagelink, 1, pPosition), "p=", i, sep = "")) %>%
+        html_node("table#listMeetingsTable") %>%
+        html_table()
+      dataForCommissioner <- rbind(dataForCommissioner, data)
+    }
+  } else {
+    # table is right there
+    dataForCommissioner <- agenda_meetings_1_page %>%
+      html_node("table#listMeetingsTable") %>%
+      html_table()
+  }
+
+  dataForCommissioner %<>% 
+    mutate(Commissioner = commissioner[["name"]])
+  
+  all_data <- rbind(all_data, dataForCommissioner)
+}
+
+# make data more tidy
+all_data %<>%
+  rename(Entity = `Entity/ies met`, Subject = `Subject(s)`) 
+all_data %<>%
+  select(Commissioner, Date, Location, Entity, Subject)
+all_data$Entity <- gsub("\\t", "", all_data$Entity)
+all_data$Entity <- gsub("\\r", "", all_data$Entity)
+all_data$Entity <- gsub("\n", "", all_data$Entity)
+write.csv(file = "all_meetings.csv", all_data, row.names = F)
+```
+
+His/her cabinet's agenda:
+```{r}
+# commissioner's cabinet members data
+all_data_cabinet <- data.frame()
+# loop over every commissioner 
+for(commissioner in commissioners){
+  print(commissioner[["name"]])
+  commissioner <- commissioners[[1]]
+  agenda_meetings_2_page <- html(commissioner[["meetings_2"]])
+  # extract number of pages
+  pagelinksContainer <- agenda_meetings_2_page %>%
+    html_node("span.pagelinks")
+  
+  dataForCommissioner <- data.frame()
+  if(!is.null(pagelinksContainer)){
+    # extract number of pages
+    pagelinks <- agenda_meetings_2_page %>%
+      html_node("span.pagelinks") %>%
+      html_nodes("a") %>%
+      html_attr("href")
+    pagelink <- tail(pagelinks, n = 1)
+    pPosition <- regexpr("-p=",pagelink)[1]
+    # max number of pages
+    lastPage <- substr(pagelink,  pPosition + 3, nchar(pagelink))
+    # loop over all pages
+    for(i in 1:lastPage){
+      i <- 1
+      data <- html(paste("http://ec.europa.eu", substr(pagelink, 1, pPosition), "p=", i, sep = "")) %>%
+        html_node("table#listMeetingsTable") %>%
+        html_table()
+      dataForCommissioner <- rbind(dataForCommissioner, data)
+    }
+  } else {
+    # table is right there
+    dataForCommissioner <- agenda_meetings_2_page %>%
+      html_node("table#listMeetingsTable") %>%
+      html_table()
+  }
+
+  dataForCommissioner %<>% 
+    mutate(Commissioner = commissioner[["name"]])
+  
+  all_data_cabinet <- rbind(all_data_cabinet, dataForCommissioner)
+}
+# make data more tidy
+all_data_cabinet %<>%
+  rename(Entity = `Entity/ies met`, Subject = `Subject(s)`, MemberName = Name) 
+all_data_cabinet %<>%
+  select(Commissioner, MemberName, Date, Location, Entity, Subject)
+all_data_cabinet$Entity <- gsub("\\t", "", all_data_cabinet$Entity)
+all_data_cabinet$Entity <- gsub("\\r", "", all_data_cabinet$Entity)
+all_data_cabinet$Entity <- gsub("\n", "", all_data_cabinet$Entity)
+write.csv(file = "all_meetings_by_cabinet.csv", all_data_cabinet, row.names = F)
+```
