@@ -2,7 +2,7 @@
 
 The herein presented scraper is an enhancement to https://github.com/cguess/Fontaine - That script by [@cguess](https://twitter.com/cguess) fetches agenda data from https://ec.europa.eu/commission/2014-2019/agenda_en
 
-Even better, i.e. **more structured data**(entities met, discussed subjects) are available on each commissioner's profile page, for example [here](http://ec.europa.eu/commission/2014-2019/timmermans_en) under the point "Agenda". Available are:
+Even better, i.e. **more structured data** (entities met, discussed subjects) are available on each commissioner's profile page, for example [here](http://ec.europa.eu/commission/2014-2019/timmermans_en) under the point "Agenda". Available are:
 
 1. The meetings held by the commissioner himself/herself
 2. The meetings held by his or her cabinet
